@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BWC-HDMS Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            transition: all 0.3s;
+        }
+        .stat-card {
+            border-left: 5px solid;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        .stat-card-blue { border-left-color: #0d6efd; }
+        .stat-card-red { border-left-color: #dc3545; }
+        .stat-card-yellow { border-left-color: #ffc107; }
+        .stat-card-green { border-left-color: #198754; }
+        .nav-link.active {
+            background-color: rgba(13, 110, 253, 0.1) !important;
+            color: #0d6efd !important;
+            font-weight: 600;
+        }
+        [data-bs-theme="dark"] .nav-link.active {
+            background-color: rgba(13, 110, 253, 0.2) !important;
+            color: #6ea8fe !important;
+        }
+        .table-responsive {
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body class="bg-body-secondary">
+
+    <div class="modal fade" id="privacyModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-shield-lock-fill me-2"></i>Data Privacy Notice (RA 10173)</h5>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">Barangay Wellness Circle - Hypertension & Diabetes Management System (BWC-HDMS)</p>
+                    <p class="small">All patient health records, biometric vitals, and medication inventories processed in this system are protected under the <strong>Data Privacy Act of 2012</strong>. Records remain strictly local to this device/secure station unless encrypted for authorized RHU health reporting.</p>
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="agreePrivacy">
+                        <label class="form-check-label small fw-semibold" for="agreePrivacy">
+                            I understand and agree to process health data securely and confidentially.
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary btn-sm w-100" id="btnAcceptPrivacy" disabled>Acknowledge & Proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg bg-body border-bottom sticky-top shadow-sm">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center fw-bold text-primary" href="#">
+                <i class="bi bi-heart-pulse-fill fs-4 me-2 text-danger"></i>
+                <span>BWC-HDMS <small class="text-muted fw-normal fs-6">v2.4</small></span>
+            </a>
+            
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-flex align-items-center gap-2" id="darkModeToggle" title="Toggle Dark/Light Mode">
+                    <i class="bi bi-sun-fill" id="themeIcon"></i>
+                    <span class="d-none d-sm-inline" id="themeText">Light</span>
+                </button>
+
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 38px; height: 38px;">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <div class="text-start d-none d-md-block">
+                            <span class="d-block fw-semibold small lh-1">Midwife Maria</span>
+                            <span class="text-muted" style="font-size: 0.75rem;">BHS Purok 3 Station</span>
+                        </div>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><a class="dropdown-item small" href="#" onclick="showNotification('Profile settings saved locally.', 'success')"><i class="bi bi-gear me-2"></i>Station Settings</a></li>
+                        <li><a class="dropdown-item small" href="#" onclick="exportSystemBackup()"><i class="bi bi-download me-2"></i>Quick Export DB</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger small" href="#" onclick="location.reload()"><i class="bi bi-box-arrow-right me-2"></i>Lock Station</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-body border-end sidebar collapse px-0">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column gap-1 px-2">
+                        <li class="nav-item">
+                            <a class="nav-link active rounded py-2 px-3 d-flex align-items-center gap-2" href="#" onclick="switchTab('dashboard', this)">
+                                <i class="bi bi-speedometer2 fs-5"></i><span>Dashboard</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded py-2 px-3 d-flex align-items-center gap-2 text-body" href="#" onclick="switchTab('tcr', this)">
+                                <i class="bi bi-people fs-5"></i><span>Target Client Registry</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded py-2 px-3 d-flex align-items-center gap-2 text-body" href="#" onclick="switchTab('consultation', this)">
+                                <i class="bi bi-clipboard2-pulse fs-5"></i><span>Consultation & Vitals</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded py-2 px-3 d-flex align-items-center gap-2 text-body" href="#" onclick="switchTab('inventory', this)">
+                                <i class="bi bi-capsule fs-5"></i><span>Medicine Inventory</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded py-2 px-3 d-flex align-items-center gap-2 text-body" href="#" onclick="switchTab('reports', this)">
+                                <i class="bi bi-file-earmark-bar-graph fs-5"></i><span>Reports & USB Backup</span>
+                            </a>
+                        </li>
+                    </ul>
+                    <hr class="my-3 mx-2">
+                    <div class="px-3 text-muted small">
+                        <div class="fw-semibold text-uppercase" style="font-size: 0.7rem;">Sync Status</div>
+                        <div class="d-flex align-items-center gap-1 mt-1 text-success">
+                            <i class="bi bi-cloud-check-fill"></i> <span style="font-size: 0.75rem;">Local DB Up-to-date</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                    <div id="liveToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body" id="toastMessage">Action completed successfully.</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-dashboard" class="tab-content-pane">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="h4 fw-bold mb-0">Barangay Health Dashboard</h2>
+                            <p class="text-muted small mb-0">Overview of Hypertension & Diabetes Active Cases in Barangay San Jose</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="switchTab('consultation', document.querySelectorAll('.nav-link')[2])">
+                            <i class="bi bi-plus-lg me-1"></i> New Patient Visit
+                        </button>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-xl-3 col-sm-6">
+                            <div class="card stat-card stat-card-blue shadow-sm h-100 border-0 bg-body">
+                                <div class="card-body">
+                                    <div class="text-muted small text-uppercase fw-semibold mb-1">Active TCR Patients</div>
+                                    <div class="fs-2 fw-bold text-body mb-1" id="statActive">148</div>
+                                    <div class="text-success small fw-medium"><i class="bi bi-arrow-up-short"></i> +4 new this week</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-3 col-sm-6">
+                            <div class="card stat-card stat-card-red shadow-sm h-100 border-0 bg-body">
+                                <div class="card-body">
+                                    <div class="text-muted small text-uppercase fw-semibold mb-1">Due Today Follow-ups</div>
+                                    <div class="fs-2 fw-bold text-danger mb-1" id="statDueToday">12</div>
+                                    <div class="text-danger small fw-medium">Requires consultation</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-3 col-sm-6">
+                            <div class="card stat-card stat-card-yellow shadow-sm h-100 border-0 bg-body">
+                                <div class="card-body">
+                                    <div class="text-muted small text-uppercase fw-semibold mb-1">Overdue / Defaulted</div>
+                                    <div class="fs-2 fw-bold text-warning mb-1" id="statOverdue">7</div>
+                                    <div class="text-muted small fw-medium">Missed monthly visit</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-3 col-sm-6">
+                            <div class="card stat-card stat-card-green shadow-sm h-100 border-0 bg-body">
+                                <div class="card-body">
+                                    <div class="text-muted small text-uppercase fw-semibold mb-1">Low-Stock Medicines</div>
+                                    <div class="fs-2 fw-bold text-success mb-1" id="statLowStock">3</div>
+                                    <div class="text-danger small fw-medium">Action required</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-lg-8">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                                    <h5 class="card-title h6 mb-0 fw-bold">Recent Consultations & Vitals Log</h5>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="switchTab('tcr', document.querySelectorAll('.nav-link')[1])">View All Registry</button>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="ps-3">Patient Name</th>
+                                                    <th>Condition</th>
+                                                    <th>BP / Glucose</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end pe-3">Date</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="recentConsultTable">
+                                                <tr>
+                                                    <td class="ps-3 fw-semibold">Juan Dela Cruz</td>
+                                                    <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle">Hypertension</span></td>
+                                                    <td>140/90 mmHg</td>
+                                                    <td><span class="badge bg-warning text-dark">Controlled</span></td>
+                                                    <td class="text-end pe-3 text-muted small">Oct 14, 2026</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="ps-3 fw-semibold">Maria Santos</td>
+                                                    <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">Type 2 Diabetes</span></td>
+                                                    <td>180 mg/dL (FBS)</td>
+                                                    <td><span class="badge bg-danger">High Risk</span></td>
+                                                    <td class="text-end pe-3 text-muted small">Oct 14, 2026</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="ps-3 fw-semibold">Pedro Penduko</td>
+                                                    <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle">Hypertension</span></td>
+                                                    <td>130/85 mmHg</td>
+                                                    <td><span class="badge bg-success">Stable</span></td>
+                                                    <td class="text-end pe-3 text-muted small">Oct 13, 2026</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-transparent py-3">
+                                    <h5 class="card-title h6 mb-0 fw-bold">Critical Inventory Alert</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex flex-column gap-3" id="quickInventoryAlerts">
+                                        <div class="p-3 border rounded bg-light-subtle">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="fw-semibold small">Losartan 50mg</span>
+                                                <span class="badge bg-danger">12 tabs left</span>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-danger" style="width: 10%;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="p-3 border rounded bg-light-subtle">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="fw-semibold small">Metformin 500mg</span>
+                                                <span class="badge bg-warning text-dark">28 tabs left</span>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-warning" style="width: 25%;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="p-3 border rounded bg-light-subtle">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="fw-semibold small">Amlodipine 10mg</span>
+                                                <span class="badge bg-danger">5 tabs left</span>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-danger" style="width: 5%;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-tcr" class="tab-content-pane d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="h4 fw-bold mb-0">Target Client Registry (TCR)</h2>
+                            <p class="text-muted small mb-0">Manage registered hypertensive and diabetic residents</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#patientModal">
+                            <i class="bi bi-person-plus-fill me-1"></i> Register New Patient
+                        </button>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
+                                        <input type="text" class="form-control" id="searchTCR" placeholder="Search by name, purok, or PhilHealth No..." onkeyup="filterTCR()">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="filterCondition" onchange="filterTCR()">
+                                        <option value="">All Conditions</option>
+                                        <option value="Hypertension">Hypertension</option>
+                                        <option value="Diabetes">Type 2 Diabetes</option>
+                                        <option value="Both">Both (HPN & DM)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="filterPurok" onchange="filterTCR()">
+                                        <option value="">All Puroks</option>
+                                        <option value="Purok 1">Purok 1</option>
+                                        <option value="Purok 2">Purok 2</option>
+                                        <option value="Purok 3">Purok 3</option>
+                                        <option value="Purok 4">Purok 4</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="tcrTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-3">PhilHealth ID / Name</th>
+                                            <th>Age / Sex</th>
+                                            <th>Purok / Address</th>
+                                            <th>Condition</th>
+                                            <th>Last Visit</th>
+                                            <th>Risk Level</th>
+                                            <th class="text-end pe-3">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tcrTableBody">
+                                        <tr>
+                                            <td class="ps-3">
+                                                <div class="fw-semibold">Juan Dela Cruz</div>
+                                                <small class="text-muted">PH: 12-345678901-2</small>
+                                            </td>
+                                            <td>54 / M</td>
+                                            <td>Purok 3, San Jose</td>
+                                            <td><span class="badge bg-danger-subtle text-danger">Hypertension</span></td>
+                                            <td>Oct 14, 2026</td>
+                                            <td><span class="badge bg-warning text-dark">Moderate</span></td>
+                                            <td class="text-end pe-3">
+                                                <button class="btn btn-sm btn-outline-primary" onclick="openPatientRecord('Juan Dela Cruz')"><i class="bi bi-eye"></i></button>
+                                                <button class="btn btn-sm btn-outline-success" onclick="quickPrescribe('Juan Dela Cruz')"><i class="bi bi-capsule"></i></button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="ps-3">
+                                                <div class="fw-semibold">Maria Santos</div>
+                                                <small class="text-muted">PH: 14-987654321-9</small>
+                                            </td>
+                                            <td>61 / F</td>
+                                            <td>Purok 1, San Jose</td>
+                                            <td><span class="badge bg-primary-subtle text-primary">Type 2 Diabetes</span></td>
+                                            <td>Oct 14, 2026</td>
+                                            <td><span class="badge bg-danger">High Risk</span></td>
+                                            <td class="text-end pe-3">
+                                                <button class="btn btn-sm btn-outline-primary" onclick="openPatientRecord('Maria Santos')"><i class="bi bi-eye"></i></button>
+                                                <button class="btn btn-sm btn-outline-success" onclick="quickPrescribe('Maria Santos')"><i class="bi bi-capsule"></i></button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-consultation" class="tab-content-pane d-none">
+                    <div class="mb-4">
+                        <h2 class="h4 fw-bold mb-0">Consultation & Vitals Recorder</h2>
+                        <p class="text-muted small mb-0">Record BP, Blood Glucose, BMI, and auto-calculate health risk stratification</p>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-lg-7">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-transparent py-3">
+                                    <h5 class="card-title h6 mb-0 fw-bold">Patient Encounter Form</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="consultForm" onsubmit="submitConsultation(event)">
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-semibold">Select Patient</label>
+                                            <select class="form-select" id="consultPatient" required>
+                                                <option value="">Choose registered patient...</option>
+                                                <option value="Juan Dela Cruz">Juan Dela Cruz (HPN)</option>
+                                                <option value="Maria Santos">Maria Santos (Diabetes)</option>
+                                                <option value="Pedro Penduko">Pedro Penduko (HPN)</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-semibold">Systolic BP (mmHg)</label>
+                                                <input type="number" class="form-control" id="bpSys" placeholder="e.g., 120" required oninput="calculateRisk()">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-semibold">Diastolic BP (mmHg)</label>
+                                                <input type="number" class="form-control" id="bpDia" placeholder="e.g., 80" required oninput="calculateRisk()">
+                                            </div>
+                                        </div>
+
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-semibold">Blood Glucose (mg/dL)</label>
+                                                <input type="number" class="form-control" id="gluVal" placeholder="e.g., 110 (Fasting/Random)" oninput="calculateRisk()">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small fw-semibold">Weight (kg)</label>
+                                                <input type="number" step="0.1" class="form-control" id="patWeight" placeholder="65" oninput="calculateBMI()">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small fw-semibold">Height (cm)</label>
+                                                <input type="number" class="form-control" id="patHeight" placeholder="165" oninput="calculateBMI()">
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-semibold">Calculated BMI & Status</label>
+                                            <input type="text" class="form-control bg-light" id="bmiResult" readonly value="Enter weight and height...">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-semibold">Prescribed Medicines / Remarks</label>
+                                            <textarea class="form-control" id="consultRemarks" rows="3" placeholder="Enter maintenance meds dispensed or lifestyle advice given..."></textarea>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-save me-2"></i>Save Encounter & Update Ledger</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-5">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-transparent py-3">
+                                    <h5 class="card-title h6 mb-0 fw-bold">Automated Risk Stratification</h5>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-center text-center">
+                                    <div id="riskDisplayBox" class="p-4 rounded border bg-light-subtle">
+                                        <i class="bi bi-shield-exclamation display-4 text-muted mb-2" id="riskIcon"></i>
+                                        <h4 class="fw-bold mb-1" id="riskTitle">Awaiting Readings</h4>
+                                        <p class="text-muted small mb-0" id="riskDesc">Input blood pressure and blood glucose values to instantly evaluate cardiovascular and metabolic risk according to DOH guidelines.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-inventory" class="tab-content-pane d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="h4 fw-bold mb-0">Medicine Inventory & Dispensing Ledger</h2>
+                            <p class="text-muted small mb-0">Track stock levels of maintenance anti-hypertensives and anti-diabetics</p>
+                        </div>
+                        <button class="btn btn-success btn-sm" onclick="showNotification('Stock replenishment manifest generated.', 'success')">
+                            <i class="bi bi-plus-circle me-1"></i> Request RHU Restock
+                        </button>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-3">Medicine Item</th>
+                                            <th>Category</th>
+                                            <th>Batch No.</th>
+                                            <th>Stock Balance</th>
+                                            <th>Status</th>
+                                            <th class="text-end pe-3">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inventoryTable">
+                                        <tr>
+                                            <td class="ps-3 fw-semibold">Losartan 50mg Tablet</td>
+                                            <td>Antihypertensive</td>
+                                            <td>LOT-2026-A</td>
+                                            <td><span class="fw-bold text-danger">12 tabs</span></td>
+                                            <td><span class="badge bg-danger">Critical Low</span></td>
+                                            <td class="text-end pe-3">
+                                                <button class="btn btn-sm btn-outline-primary" onclick="dispenseMed('Losartan 50mg')">Dispense</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="ps-3 fw-semibold">Metformin 500mg Tablet</td>
+                                            <td>Anti-diabetic</td>
+                                            <td>LOT-2025-M</td>
+                                            <td><span class="fw-bold text-warning">28 tabs</span></td>
+                                            <td><span class="badge bg-warning text-dark">Low Stock</span></td>
+                                            <td class="text-end pe-3">
+                                                <button class="btn btn-sm btn-outline-primary" onclick="dispenseMed('Metformin 500mg')">Dispense</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="ps-3 fw-semibold">Amlodipine 10mg Tablet</td>
+                                            <td>Antihypertensive</td>
+                                            <td>LOT-2026-B</td>
+                                            <td><span class="fw-bold text-danger">5 tabs</span></td>
+                                            <td><span class="badge bg-danger">Critical Low</span></td>
+                                            <td class="text-end pe-3">
+                                                <button class="btn btn-sm btn-outline-primary" onclick="dispenseMed('Amlodipine 10mg')">Dispense</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="ps-3 fw-semibold">Gliclazide 80mg Tablet</td>
+                                            <td>Anti-diabetic</td>
+                                            <td>LOT-2026-G</td>
+                                            <td><span class="fw-bold text-success">145 tabs</span></td>
+                                            <td><span class="badge bg-success">Adequate</span></td>
+                                            <td class="text-end pe-3">
+                                                <button class="btn btn-sm btn-outline-primary" onclick="dispenseMed('Gliclazide 80mg')">Dispense</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-reports" class="tab-content-pane d-none">
+                    <div class="mb-4">
+                        <h2 class="h4 fw-bold mb-0">Reports & Encrypted USB Backup</h2>
+                        <p class="text-muted small mb-0">Generate monthly DOH summary reports and create secure encrypted backups for RHU submission</p>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-transparent py-3">
+                                    <h5 class="card-title h6 mb-0 fw-bold">DOH Health Center Reports</h5>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <div>
+                                        <p class="small text-muted">Generate official Department of Health monthly tally sheets for Hypertension and Diabetes registries.</p>
+                                        <ul class="list-unstyled small mb-4">
+                                            <li class="mb-2"><i class="bi bi-file-earmark-text text-primary me-2"></i> Monthly HPN Treatment Compliance Report</li>
+                                            <li class="mb-2"><i class="bi bi-file-earmark-text text-primary me-2"></i> Diabetes Mellitus Blood Sugar Control Summary</li>
+                                            <li class="mb-2"><i class="bi bi-file-earmark-text text-primary me-2"></i> Barangay Medicine Consumption Ledger</li>
+                                        </ul>
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="showNotification('Generating PDF report...', 'success')"><i class="bi bi-file-pdf me-2"></i>Download Monthly Summary (PDF)</button>
+                                        <button class="btn btn-outline-success btn-sm" onclick="showNotification('Excel spreadsheet compiled.', 'success')"><i class="bi bi-file-earmark-excel me-2"></i>Export to Excel (CSV)</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-transparent py-3">
+                                    <h5 class="card-title h6 mb-0 fw-bold">Encrypted USB Backup Tool</h5>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <div>
+                                        <p class="small text-muted">Create a password-encrypted backup archive of the local SQLite/LocalStorage database for safe transport to the Rural Health Unit (RHU).</p>
+                                        <div class="alert alert-secondary small mb-3">
+                                            <i class="bi bi-shield-lock me-1"></i> AES-256 Encryption enforced for local data portability.
+                                        </div>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button class="btn btn-dark btn-sm py-2" onclick="exportSystemBackup()"><i class="bi bi-usb-drive me-2"></i>Create Encrypted USB Backup Package</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <div class="modal fade" id="patientModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title h6 fw-bold">Register New Client in TCR</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newPatientForm" onsubmit="savePatient(event)">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Full Name</label>
+                            <input type="text" class="form-control" id="newPatientName" placeholder="e.g., Juan Dela Cruz" required>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Age</label>
+                                <input type="number" class="form-control" id="newPatientAge" placeholder="45" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Sex</label>
+                                <select class="form-select" id="newPatientSex">
+                                    <option value="M">Male</option>
+                                    <option value="F">Female</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Purok</label>
+                                <select class="form-select" id="newPatientPurok">
+                                    <option value="Purok 1">Purok 1</option>
+                                    <option value="Purok 2">Purok 2</option>
+                                    <option value="Purok 3">Purok 3</option>
+                                    <option value="Purok 4">Purok 4</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Condition</label>
+                                <select class="form-select" id="newPatientCondition">
+                                    <option value="Hypertension">Hypertension</option>
+                                    <option value="Type 2 Diabetes">Type 2 Diabetes</option>
+                                    <option value="Both">Both (HPN & DM)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">PhilHealth ID No.</label>
+                            <input type="text" class="form-control" id="newPatientPH" placeholder="12-345678901-2" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Save to Registry</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const privacyModal = new bootstrap.Modal(document.getElementById('privacyModal'));
+            privacyModal.show();
+
+            const agreeCheck = document.getElementById('agreePrivacy');
+            const btnAccept = document.getElementById('btnAcceptPrivacy');
+
+            agreeCheck.addEventListener('change', function() {
+                btnAccept.disabled = !this.checked;
+            });
+
+            btnAccept.addEventListener('click', () => {
+                privacyModal.hide();
+                showNotification('Privacy terms acknowledged. Station ready.', 'success');
+            });
+
+            // Restore Theme from localStorage
+            const savedTheme = localStorage.getItem('bwc_theme') || 'light';
+            setTheme(savedTheme);
+        });
+
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        darkModeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+            localStorage.setItem('bwc_theme', newTheme);
+        });
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            if (theme === 'dark') {
+                icon.className = 'bi bi-moon-stars-fill text-warning';
+                text.textContent = 'Dark';
+            } else {
+                icon.className = 'bi bi-sun-fill';
+                text.textContent = 'Light';
+            }
+        }
+
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content-pane').forEach(pane => pane.classList.add('d-none'));
+            document.getElementById('tab-' + tabId).classList.remove('d-none');
+
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
+            if(el) el.classList.add('active');
+        }
+
+        function showNotification(msg, type = 'success') {
+            const toastEl = document.getElementById('liveToast');
+            const toastMsg = document.getElementById('toastMessage');
+            toastMsg.textContent = msg;
+            toastEl.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0`;
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+
+        function calculateBMI() {
+            const w = parseFloat(document.getElementById('patWeight').value);
+            const h = parseFloat(document.getElementById('patHeight').value) / 100;
+            const resBox = document.getElementById('bmiResult');
+
+            if (w > 0 && h > 0) {
+                const bmi = (w / (h * h)).toFixed(1);
+                let status = '';
+                if (bmi < 18.5) status = 'Underweight';
+                else if (bmi < 25) status = 'Normal Weight';
+                else if (bmi < 30) status = 'Overweight';
+                else status = 'Obese';
+                resBox.value = `${bmi} kg/m² (${status})`;
+            } else {
+                resBox.value = 'Enter weight and height...';
+            }
+        }
+
+        function calculateRisk() {
+            const sys = parseInt(document.getElementById('bpSys').value) || 0;
+            const dia = parseInt(document.getElementById('bpDia').value) || 0;
+            const glu = parseInt(document.getElementById('gluVal').value) || 0;
+
+            const title = document.getElementById('riskTitle');
+            const desc = document.getElementById('riskDesc');
+            const box = document.getElementById('riskDisplayBox');
+            const icon = document.getElementById('riskIcon');
+
+            if (sys === 0 && dia === 0 && glu === 0) {
+                title.textContent = 'Awaiting Readings';
+                desc.textContent = 'Input blood pressure and blood glucose values to instantly evaluate cardiovascular and metabolic risk.';
+                box.className = 'p-4 rounded border bg-light-subtle';
+                icon.className = 'bi bi-shield-exclamation display-4 text-muted mb-2';
+                return;
+            }
+
+            let riskLevel = 'Low / Stable';
+            let bgClass = 'bg-success-subtle border-success text-success';
+            let iconClass = 'bi bi-shield-check display-4 text-success mb-2';
+
+            if (sys >= 160 || dia >= 100 || glu >= 200) {
+                riskLevel = 'High Risk / Stage 2 / Urgent Action';
+                bgClass = 'bg-danger-subtle border-danger text-danger';
+                iconClass = 'bi bi-shield-fill-exclamation display-4 text-danger mb-2';
+            } else if (sys >= 140 || dia >= 90 || glu >= 126) {
+                riskLevel = 'Moderate Risk / Elevated Stage';
+                bgClass = 'bg-warning-subtle border-warning text-warning';
+                iconClass = 'bi bi-shield-exclamation display-4 text-warning mb-2';
+            }
+
+            title.textContent = riskLevel;
+            desc.textContent = `Based on BP (${sys}/${dia} mmHg) and Blood Glucose (${glu} mg/dL).`;
+            box.className = `p-4 rounded border ${bgClass}`;
+            icon.className = iconClass;
+        }
+
+        function savePatient(e) {
+            e.preventDefault();
+            const name = document.getElementById('newPatientName').value;
+            const age = document.getElementById('newPatientAge').value;
+            const sex = document.getElementById('newPatientSex').value;
+            const purok = document.getElementById('newPatientPurok').value;
+            const condition = document.getElementById('newPatientCondition').value;
+            const ph = document.getElementById('newPatientPH').value;
+
+            const tbody = document.getElementById('tcrTableBody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="ps-3"><div class="fw-semibold">${name}</div><small class="text-muted">PH: ${ph}</small></td>
+                <td>${age} / ${sex}</td>
+                <td>${purok}, San Jose</td>
+                <td><span class="badge bg-primary-subtle text-primary">${condition}</span></td>
+                <td>Today</td>
+                <td><span class="badge bg-success">Stable</span></td>
+                <td class="text-end pe-3">
+                    <button class="btn btn-sm btn-outline-primary" onclick="openPatientRecord('${name}')"><i class="bi bi-eye"></i></button>
+                    <button class="btn btn-sm btn-outline-success" onclick="quickPrescribe('${name}')"><i class="bi bi-capsule"></i></button>
+                </td>
+            `;
+            tbody.prepend(tr);
+
+            bootstrap.Modal.getInstance(document.getElementById('patientModal')).hide();
+            document.getElementById('newPatientForm').reset();
+            showNotification(`Patient ${name} registered successfully.`, 'success');
+        }
+
+        function filterTCR() {
+            const query = document.getElementById('searchTCR').value.toLowerCase();
+            const cond = document.getElementById('filterCondition').value;
+            const pur = document.getElementById('filterPurok').value;
+
+            const rows = document.querySelectorAll('#tcrTableBody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const matchesQuery = text.includes(query);
+                const matchesCond = cond === '' || text.includes(cond.toLowerCase());
+                const matchesPur = pur === '' || text.includes(pur.toLowerCase());
+
+                if (matchesQuery && matchesCond && matchesPur) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function submitConsultation(e) {
+            e.preventDefault();
+            const patient = document.getElementById('consultPatient').value;
+            const sys = document.getElementById('bpSys').value;
+            const dia = document.getElementById('bpDia').value;
+            const glu = document.getElementById('gluVal').value;
+
+            if(!patient) {
+                showNotification('Please select a patient.', 'danger');
+                return;
+            }
+
+            showNotification(`Consultation for ${patient} saved and synced to ledger.`, 'success');
+            document.getElementById('consultForm').reset();
+            document.getElementById('bmiResult').value = 'Enter weight and height...';
+            calculateRisk();
+        }
+
+        function dispenseMed(medName) {
+            showNotification(`Dispensed 30 days supply of ${medName}. Stock balance updated.`, 'success');
+        }
+
+        function quickPrescribe(patientName) {
+            switchTab('consultation', document.querySelectorAll('.nav-link')[2]);
+            document.getElementById('consultPatient').value = patientName;
+            showNotification(`Loaded consultation form for ${patientName}`, 'success');
+        }
+
+        function openPatientRecord(patientName) {
+            showNotification(`Opening electronic health record for ${patientName}...`, 'success');
+        }
+
+        function exportSystemBackup() {
+            showNotification('Encrypted backup archive (.enc) successfully generated for RHU submission.', 'success');
+        }
+    </script>
+</body>
+</html>
